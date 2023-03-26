@@ -25,9 +25,8 @@ module top_module#(parameter int IMG_SIZE = 512)(input logic clk, input logic re
     integer G_IN[IMG_SIZE-1:0][IMG_SIZE-1:0]; // from the input G pixels will be loaded here
     integer B_IN[IMG_SIZE-1:0][IMG_SIZE-1:0]; // from the input B pixels will be loaded here
     
-    integer counter = 0; // counts the pixels serially given
-    integer row,col,loading_col; 
-    integer R_temp,G_temp,B_temp;
+    integer counter; // counts the pixels serially given
+    integer row,col;
     
     always_ff@(posedge clk)
         begin
@@ -39,7 +38,6 @@ module top_module#(parameter int IMG_SIZE = 512)(input logic clk, input logic re
             begin     
                 row = counter/IMG_SIZE;
                 col = counter%IMG_SIZE;
-                loading_col = col - 1;
                 if(counter < IMG_SIZE*IMG_SIZE)
                     begin
                         R_IN[row][col] = in[0]; // loading the r_pixel
@@ -54,105 +52,9 @@ module top_module#(parameter int IMG_SIZE = 512)(input logic clk, input logic re
             end
         end
         
-    always_ff@(posedge clk)
-    begin
-        if(reset) 
-            begin
-                for(int m = 0; m < IMG_SIZE; m++)
-                    begin
-                        for(int n = 0; n < IMG_SIZE; n++)
-                            begin
-                                R_OUT[m][n] = 0;
-                            end
-                    end 
-            end
-            
-        else
-            begin
-                if(row>=2 && row<=IMG_SIZE-1) // we have to wait until there are 3 rows and 3 cols because the filter is of size of 3x3
-                begin
-                    if(col>=2 && col<=IMG_SIZE-1)
-                        begin
-                            R_temp = 0;                        
-                            for(int k=0;k<3;k++)
-                                begin
-                                    for(int l=0;l<3;l++)
-                                        begin
-                                            R_temp =  R_temp + R_IN[row-2+k][col-2+l]*FILTER[k][l]; // doing the dot product and summing those dot products 
-                                        end 
-                                end
-                            R_OUT[row-2][col-2] = R_temp;  // the sum of dot products of convolution will be assigned to this pixel
-                        end
-                end
-            end
-    end  
-    
-    
-    always_ff@(posedge clk)
-    begin
-        if(reset) 
-            begin
-                for(int m = 0; m < IMG_SIZE; m++)
-                    begin
-                        for(int n = 0; n < IMG_SIZE; n++)
-                            begin
-                                G_OUT[m][n] = 0;
-                            end
-                    end 
-            end
-            
-        else
-            begin
-                if(row>=2 && row<=IMG_SIZE-1) // we have to wait until there are 3 rows and 3 cols because the filter is of size of 3x3
-                begin
-                    if(col>=2 && col<=IMG_SIZE-1)
-                        begin
-                            G_temp = 0;                        
-                            for(int k=0;k<3;k++)
-                                begin
-                                    for(int l=0;l<3;l++)
-                                        begin
-                                            G_temp =  G_temp + G_IN[row-2+k][col-2+l]*FILTER[k][l]; // doing the dot product and summing those dot products 
-                                        end 
-                                end
-                            G_OUT[row-2][col-2] = G_temp;  // the sum of dot products of convolution will be assigned to this pixel
-                        end
-                end
-            end
-    end    
-    
-    always_ff@(posedge clk)
-    begin
-        if(reset) 
-            begin
-                for(int m = 0; m < IMG_SIZE; m++)
-                    begin
-                        for(int n = 0; n < IMG_SIZE; n++)
-                            begin
-                                B_OUT[m][n] = 0;
-                            end
-                    end 
-            end
-            
-        else
-            begin
-                if(row>=2 && row<=IMG_SIZE-1) // we have to wait until there are 3 rows and 3 cols because the filter is of size of 3x3
-                begin
-                    if(col>=2 && col<=IMG_SIZE-1)
-                        begin
-                            B_temp = 0;                        
-                            for(int k=0;k<3;k++)
-                                begin
-                                    for(int l=0;l<3;l++)
-                                        begin
-                                            B_temp =  B_temp + B_IN[row-2+k][col-2+l]*FILTER[k][l]; // doing the dot product and summing those dot products 
-                                        end 
-                                end
-                            B_OUT[row-2][col-2] = B_temp;  // the sum of dot products of convolution will be assigned to this pixel
-                        end
-                end
-            end
-    end  
+    matrix_dotproduct_addition red(.clk(clk),.reset(reset),.row(row),.col(col),.COLOR_IN(R_IN),.FILTER(FILTER),.COLOR_OUT(R_OUT));
+    matrix_dotproduct_addition green(.clk(clk),.reset(reset),.row(row),.col(col),.COLOR_IN(G_IN),.FILTER(FILTER),.COLOR_OUT(G_OUT));
+    matrix_dotproduct_addition blue(.clk(clk),.reset(reset),.row(row),.col(col),.COLOR_IN(B_IN),.FILTER(FILTER),.COLOR_OUT(B_OUT));
     
     always_ff@(posedge clk)
         begin
